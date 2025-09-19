@@ -52,7 +52,7 @@ A specialized health AI assistant with multilingual support, designed to provide
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/Itskrish01/swasth-ai.git
+   git clone https://github.com/sneha822/swasth-ai.git
    cd swasth-ai
    ```
 
