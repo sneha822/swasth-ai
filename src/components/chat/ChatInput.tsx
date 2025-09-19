@@ -80,7 +80,7 @@ export function ChatInput() {
   }, []);
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 pb-6 pt-4 px-2 sm:px-4 z-10">
+    <div className="absolute bottom-0 left-0 right-0 pb-6 px-2 sm:px-4 z-10 bg-gradient-to-t from-[#080808] to-[#0a0f1a]/5 backdrop-blur-sm">
       <div className="max-w-3xl mx-auto">
         <form
           onClick={focusInput}

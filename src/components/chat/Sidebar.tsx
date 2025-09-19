@@ -339,7 +339,7 @@ function SidebarContent({
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="p-4 border-b border-[#1e3a5f]/30">
+      <div className="py-2 px-2 border-b border-[#1e3a5f]/30">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#89f7fe] to-[#66a6ff] flex items-center justify-center shadow-lg">
@@ -371,13 +371,13 @@ function SidebarContent({
       </div>
 
       {/* Conversations */}
-      <ScrollArea className="flex-1 px-3 py-2">
+      <ScrollArea className="flex-1 px-2 py-1">
         {isLoading ? (
-          <div className="flex items-center justify-center h-20">
+          <div className="flex items-center justify-center h-16">
             <div className="w-6 h-6 border-2 border-[#89f7fe] border-t-transparent rounded-full animate-spin" />
           </div>
         ) : conversations && conversations.length > 0 ? (
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             <AnimatePresence>
               {conversations.map(
                 (conversation: ChatConversation, index: number) => (
@@ -388,29 +388,29 @@ function SidebarContent({
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.2, delay: index * 0.05 }}
                     className={cn(
-                      "group relative p-3 rounded-xl cursor-pointer transition-all duration-200",
+                      "group relative p-2.5 rounded-lg cursor-pointer transition-all duration-200",
                       isActiveConversation(conversation.id)
-                        ? "bg-gradient-to-r from-[#89f7fe]/10 to-[#66a6ff]/10 border border-[#89f7fe]/30 shadow-lg"
+                        ? "bg-gradient-to-r from-[#89f7fe]/10 to-[#66a6ff]/10 border border-[#89f7fe]/30 shadow-md"
                         : "hover:bg-[#1e3a5f]/20 border border-transparent"
                     )}
                     onClick={() => handleSelectConversation(conversation.id)}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-0.5">
                           <MessageSquare
                             className={cn(
-                              "w-4 h-4 flex-shrink-0",
+                              "w-3.5 h-3.5 flex-shrink-0",
                               isActiveConversation(conversation.id)
                                 ? "text-[#89f7fe]"
                                 : "text-gray-400"
                             )}
                           />
-                          <h3 className="text-sm font-medium text-white truncate">
+                          <h3 className="text-sm font-medium text-white truncate leading-tight">
                             {conversation.title || "New Conversation"}
                           </h3>
                         </div>
-                        <p className="text-xs text-gray-400 truncate">
+                        <p className="text-xs text-gray-400 truncate leading-tight">
                           {conversation.updatedAt &&
                             formatDistanceToNow(
                               (
@@ -426,13 +426,13 @@ function SidebarContent({
                         disabled={
                           isDeleting && conversationToDelete === conversation.id
                         }
-                        className="w-8 h-8 p-0 rounded-lg bg-red-500/5 hover:bg-red-500/15 border border-red-500/10 hover:border-red-500/30 opacity-0 group-hover:opacity-100 transition-all duration-200 group/delete"
+                        className="w-7 h-7 p-0 rounded-md bg-red-500/5 hover:bg-red-500/15 border border-red-500/10 hover:border-red-500/30 opacity-0 group-hover:opacity-100 transition-all duration-200 group/delete"
                       >
                         {isDeleting &&
                         conversationToDelete === conversation.id ? (
-                          <div className="w-3.5 h-3.5 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                          <div className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
                         ) : (
-                          <Trash2 className="w-4 h-4 text-red-400 hover:text-red-300 group-hover/delete:scale-110 transition-all duration-200" />
+                          <Trash2 className="w-3.5 h-3.5 text-red-400 hover:text-red-300 group-hover/delete:scale-110 transition-all duration-200" />
                         )}
                       </Button>
                     </div>
@@ -442,11 +442,11 @@ function SidebarContent({
             </AnimatePresence>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-40 text-center px-4">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#1e3a5f]/20 to-[#89f7fe]/10 flex items-center justify-center mb-4">
-              <MessageSquare className="w-8 h-8 text-gray-500" />
+          <div className="flex flex-col items-center justify-center h-32 text-center px-4">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#1e3a5f]/20 to-[#89f7fe]/10 flex items-center justify-center mb-3">
+              <MessageSquare className="w-6 h-6 text-gray-500" />
             </div>
-            <h3 className="text-sm font-medium text-gray-400 mb-2">
+            <h3 className="text-sm font-medium text-gray-400 mb-1">
               No conversations yet
             </h3>
             <p className="text-xs text-gray-500">
