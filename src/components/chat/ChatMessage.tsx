@@ -274,7 +274,7 @@ export function ChatMessage({ message, isLatest = false }: ChatMessageProps) {
                     </h3>
                   ),
                   blockquote: ({ children }) => (
-                    <blockquote className="border-l-2 border-[#e67553] pl-4 italic my-3">
+                    <blockquote className="border-l-2 border-[#89f7fe] pl-4 italic my-3">
                       {children}
                     </blockquote>
                   ),
@@ -287,7 +287,7 @@ export function ChatMessage({ message, isLatest = false }: ChatMessageProps) {
                 <div className="mt-4 rounded-lg overflow-hidden">
                   {imageLoading && (
                     <div className="flex flex-col items-center justify-center bg-[#1a1a1a] p-8 rounded-lg animate-pulse">
-                      <Image className="h-12 w-12 text-[#e67553] mb-3" />
+                      <Image className="h-12 w-12 text-[#89f7fe] mb-3" />
                       <p className="text-sm text-white/70">
                         Generating image...
                       </p>
@@ -296,7 +296,7 @@ export function ChatMessage({ message, isLatest = false }: ChatMessageProps) {
 
                   {imageError ? (
                     <div className="flex flex-col items-center justify-center bg-[#1a1a1a] p-8 rounded-lg">
-                      <AlertCircle className="h-12 w-12 text-[#e67553] mb-3" />
+                      <AlertCircle className="h-12 w-12 text-[#89f7fe] mb-3" />
                       <p className="text-sm text-white/70 text-center mb-2">
                         Failed to generate image
                       </p>

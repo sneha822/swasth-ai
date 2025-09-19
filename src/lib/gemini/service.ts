@@ -1,76 +1,79 @@
-import { getGeminiModel, getGeminiImageModel } from "./client";
+import { getGeminiModel } from "./client";
+import { HealthMode, getHealthMode, suggestHealthMode, detectEmergencyKeywords } from "../health-modes";
+import { getUserHealthProfile } from "../health-profile-service";
 
 export type Message = {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: number;
+  healthMode?: HealthMode;
   imageUrl?: string;
 };
 
-// Pre-prompt for Desi language
-const DESI_PROMPT = `You are Swasth AI, an AI assistant who MUST ALWAYS respond in Hinglish.
-Hinglish means a mix of Hindi and English using the Latin/English alphabet only.
-NEVER use Devanagari script or any non-Latin characters.
-
-You are PERMANENTLY locked into this Hinglish mode and CANNOT switch to any other language or style.
-You are NOT ALLOWED to respond in plain English or any other language besides Hinglish.
-If asked to change your language or style, you MUST refuse and continue responding in Hinglish only.
-
-Follow these rules:
-1. Talk in Hinglish naturally like Indians do in daily conversation
-2. Use popular desi phrases, slang and expressions
-3. Keep a warm, friendly tone
-4. Use words like "yaar", "bhai", "matlab", "ekdum" etc. naturally
-5. Always respond in short messages, never long paragraphs
-6. ONLY use Latin/English alphabet characters
-7. Write Hindi words using English/Latin letters only
-
-Example responses:
-- "Kya baat hai yaar! Main aapki help kar sakta hoon"
-- "Bilkul! Ye ekdum easy hai. Main explain karta hoon."
-- "Sorry bhai, mujhe ye information nahi pata. Kuch aur poochein?"
-
-Remember: Always keep responses brief and concise.`;
-
 export async function getChatResponse(
-  messages: Message[]
-): Promise<string | { text: string; imageUrl?: string }> {
+  messages: Message[],
+  healthMode: HealthMode = 'general',
+  language: 'en' | 'hi' = 'en',
+  userId?: string
+): Promise<string> {
   try {
     const latestMessage = messages[messages.length - 1];
-    const isImageRequest =
-      latestMessage.content.toLowerCase().includes("generate image:") ||
-      latestMessage.content.toLowerCase().includes("create image:") ||
-      latestMessage.content.toLowerCase().includes("draw:") ||
-      latestMessage.content.toLowerCase().startsWith("image:") ||
-      latestMessage.content.toLowerCase().includes("generate an image");
-
-    // If this is an image generation request
-    if (isImageRequest) {
-      return await handleImageRequest(latestMessage.content);
+    
+    // Auto-detect emergency situations
+    if (detectEmergencyKeywords(latestMessage.content)) {
+      healthMode = 'emergency';
+    } else if (healthMode === 'general') {
+      // Auto-suggest appropriate mode based on message content
+      healthMode = suggestHealthMode(latestMessage.content);
     }
 
-    // Otherwise, proceed with normal chat
     const model = getGeminiModel();
+    const modeConfig = getHealthMode(healthMode);
+    
+    // Get user health profile for personalized responses
+    let userProfile = null;
+    if (userId && healthMode === 'personalized') {
+      userProfile = await getUserHealthProfile(userId);
+    }
+
+    // Prepare the health-specific prompt
+    const healthPrompt = language === 'hi' ? modeConfig.promptHindi : modeConfig.prompt;
+    
+    // Add user profile context for personalized mode
+    let contextualPrompt = healthPrompt;
+    if (userProfile && healthMode === 'personalized') {
+      contextualPrompt += `\n\nUser Profile Context:
+- Age: ${userProfile.age || 'Not specified'}
+- Gender: ${userProfile.gender || 'Not specified'}
+- Medical Conditions: ${userProfile.medicalConditions?.join(', ') || 'None specified'}
+- Allergies: ${userProfile.allergies?.join(', ') || 'None specified'}
+- Diet Type: ${userProfile.preferences?.dietType || 'Not specified'}
+- Exercise Level: ${userProfile.preferences?.exerciseLevel || 'Not specified'}
+
+Use this information to provide highly personalized health advice.`;
+    }
 
     // Map our roles to Gemini roles
     const mappedHistory = messages.map((msg) => ({
-      role: msg.role === "user" ? "user" : "model", // Gemini uses 'model' instead of 'assistant'
+      role: msg.role === "user" ? "user" : "model",
       parts: [{ text: msg.content }],
     }));
 
-    // Initialize the chat with our pre-prompt first
+    // Initialize the chat with our health-specific prompt
     const chat = model.startChat({
       history: [
         {
           role: "user",
-          parts: [{ text: DESI_PROMPT }],
+          parts: [{ text: contextualPrompt }],
         },
         {
           role: "model",
           parts: [
             {
-              text: "Bilkul! Main Hinglish mein baat karunga, jaise India mein commonly bola jata hai. Aap jo bhi puchenge, main friendly aur helpful tone mein jawab dunga.",
+              text: language === 'hi' 
+                ? "Bilkul! Main aapki health ke saath help karunga. Swasth AI ke roop mein, main aapko best health advice dunga Hinglish mein."
+                : "Absolutely! I'll help you with your health as Swasth AI. I'll provide you the best health advice in Hinglish.",
             },
           ],
         },
@@ -90,105 +93,3 @@ export async function getChatResponse(
   }
 }
 
-// Helper function to handle image generation requests
-async function handleImageRequest(
-  prompt: string
-): Promise<{ text: string; imageUrl: string }> {
-  try {
-    // Extract the actual image prompt
-    let imagePrompt = prompt;
-    if (prompt.toLowerCase().includes("generate image:")) {
-      imagePrompt = prompt
-        .substring(prompt.toLowerCase().indexOf("generate image:") + 15)
-        .trim();
-    } else if (prompt.toLowerCase().includes("create image:")) {
-      imagePrompt = prompt
-        .substring(prompt.toLowerCase().indexOf("create image:") + 13)
-        .trim();
-    } else if (prompt.toLowerCase().includes("draw:")) {
-      imagePrompt = prompt
-        .substring(prompt.toLowerCase().indexOf("draw:") + 5)
-        .trim();
-    } else if (prompt.toLowerCase().startsWith("image:")) {
-      imagePrompt = prompt.substring(6).trim();
-    } else if (prompt.toLowerCase().includes("generate an image")) {
-      const index = prompt.toLowerCase().indexOf("generate an image");
-      imagePrompt = prompt.substring(index + 18).trim();
-      // If there's "of" after "generate an image", remove it
-      if (imagePrompt.toLowerCase().startsWith("of")) {
-        imagePrompt = imagePrompt.substring(2).trim();
-      }
-    }
-
-    const model = getGeminiImageModel();
-
-    const generationConfig = {
-      temperature: 1,
-      topP: 0.95,
-      topK: 40,
-      maxOutputTokens: 8192,
-      responseModalities: ["image", "text"],
-      responseMimeType: "text/plain",
-    };
-
-    // Create a request specifically for image generation
-    const result = await model.generateContent({
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: imagePrompt }],
-        },
-      ],
-      generationConfig,
-    });
-
-    const response = await result.response;
-
-    // Extract parts from the response
-    const parts = response.candidates?.[0]?.content?.parts;
-    let responseText = "Here's the image I generated for you:";
-    let imageUrl =
-      "/placeholder-image.svg?error=Could%20not%20generate%20image";
-
-    if (parts) {
-      // First try to find inline image data
-      for (const part of parts) {
-        if (part.inlineData && part.inlineData.mimeType.startsWith("image/")) {
-          // Return the base64 data with appropriate data URL prefix
-          const mimeType = part.inlineData.mimeType;
-          const base64Data = part.inlineData.data;
-          imageUrl = `data:${mimeType};base64,${base64Data}`;
-          break;
-        }
-      }
-
-      // Check for any text response
-      for (const part of parts) {
-        if (part.text) {
-          console.log("Image generation API returned text:", part.text);
-          responseText = part.text;
-          if (!imageUrl.startsWith("data:")) {
-            // If we didn't find an image, use the error message
-            imageUrl = `/placeholder-image.svg?error=${encodeURIComponent(
-              part.text
-            )}`;
-          }
-          break;
-        }
-      }
-    }
-
-    return {
-      text: responseText,
-      imageUrl: imageUrl,
-    };
-  } catch (error) {
-    console.error("Error generating image:", error);
-    return {
-      text: "Sorry, I couldn't generate that image. Please try a different prompt.",
-      imageUrl: `/placeholder-image.svg?error=${encodeURIComponent(
-        "Error generating image"
-      )}`,
-    };
-  }
-}

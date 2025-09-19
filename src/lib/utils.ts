@@ -39,11 +39,12 @@ export const DESIGN_TOKENS = {
     "relative rounded-xl border border-white/5 border-t-white/10 bg-gradient-to-tr from-[#0F0F0F] to-[#0B0B0B] shadow-lg duration-300 space-y-1.5 px-4 py-3",
   inputStyles:
     "flex h-[50px] items-center rounded-full bg-[#191919] border border-white/10 px-2 shadow-md focus-within:ring-1 focus-within:ring-white/20",
-  buttonPrimary: "bg-[#e67553] hover:bg-[#e67553]/90 text-white font-medium",
+  buttonPrimary:
+    "bg-[#89f7fe] hover:bg-[#89f7fe]/90 text-white font-medium", // New gradient color
   buttonSecondary: "bg-[#222] hover:bg-[#333] text-white/90 font-medium",
   gradients: {
     primary: "bg-gradient-to-tr from-[#0F0F0F] to-[#0B0B0B]",
-    accent: "bg-gradient-to-r from-[#e67553] to-[#f19270]",
+    accent: "bg-gradient-to-r from-[#89f7fe] to-[#66a6ff]", // New gradient
     subtle: "bg-gradient-to-b from-transparent to-black/40",
   },
   animations: {

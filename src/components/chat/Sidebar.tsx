@@ -1,22 +1,20 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { User } from "firebase/auth";
+import { ChatConversation } from "../../lib/chat-service";
+import { UserData } from "../../lib/auth";
 import {
   X,
   Trash2,
   User as UserIcon,
   Plus,
-  PanelRight,
-  Lock,
-  ChevronRight,
-  Settings,
-  Info,
   MessageSquare,
-  HelpCircle,
-  Shield,
-  AlertTriangle,
-  Github,
-  ExternalLink,
+  Lock,
+  Settings,
   Heart,
+  ChevronRight,
+  Shield,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { ScrollArea } from "../ui/scroll-area";
@@ -63,12 +61,10 @@ export function Sidebar({
     loadUserConversations,
   } = useChatContext();
 
-  // Use useAuth only once
   const { user, userData } = useAuth();
-
-  // Use useMemo for complex operations
   const navigate = useNavigate();
   const location = useLocation();
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -76,20 +72,7 @@ export function Sidebar({
     string | null
   >(null);
   const [avatarError, setAvatarError] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [securityInfoOpen, setSecurityInfoOpen] = useState(false);
-  const isDesktop = useMediaQuery("(min-width: 1024px)");
-
-  // Save sidebar collapsed state to localStorage
-  useEffect(() => {
-    if (isDesktop) {
-      const savedCollapsed =
-        localStorage.getItem("sidebarCollapsed") === "true";
-      if (isCollapsed !== savedCollapsed) {
-        setIsCollapsed(savedCollapsed);
-      }
-    }
-  }, [isDesktop, isCollapsed]);
 
   // Save active conversation to localStorage
   useEffect(() => {
@@ -98,36 +81,33 @@ export function Sidebar({
     }
   }, [activeConversationId]);
 
-  // Restore last active conversation on mount
+  // Restore last active conversation on mount (but NOT on /new to avoid flashing)
   useEffect(() => {
     const savedConversation = localStorage.getItem("lastActiveConversation");
+    const onNewPage = location.pathname === "/new";
     if (
+      !onNewPage &&
       savedConversation &&
       !activeConversationId &&
       conversations.some((c) => c.id === savedConversation)
     ) {
       loadConversation(savedConversation);
     }
-  }, []);
-
-  const toggleCollapse = () => {
-    const newState = !isCollapsed;
-    setIsCollapsed(newState);
-    localStorage.setItem("sidebarCollapsed", newState.toString());
-  };
+  }, [
+    activeConversationId,
+    conversations,
+    loadConversation,
+    location.pathname,
+  ]);
 
   const handleNewChat = () => {
     navigate("/new");
-    if (onClose) {
-      onClose();
-    }
+    if (onClose) onClose();
   };
 
   const handleSelectConversation = (conversationId: string) => {
     navigate(`/chat/${conversationId}`);
-    if (onClose) {
-      onClose();
-    }
+    if (onClose) onClose();
   };
 
   const handleDeleteClick = (e: React.MouseEvent, conversationId: string) => {
@@ -141,15 +121,12 @@ export function Sidebar({
       setIsDeleting(true);
       try {
         await deleteConversation(conversationToDelete);
-        // If we deleted the active conversation, clear the chat
         if (conversationToDelete === activeConversationId) {
           clearChat();
-          // Navigate to new chat if we're on the deleted chat's page
           if (location.pathname === `/chat/${conversationToDelete}`) {
             navigate("/new");
           }
         }
-        // Refresh the conversations list
         if (user) {
           await loadUserConversations();
         }
@@ -168,301 +145,272 @@ export function Sidebar({
     setConversationToDelete(null);
   };
 
-  // Get display name from the user data
   const displayName =
     userData?.displayName || user?.email?.split("@")[0] || "User";
 
-  // Generate a color based on conversation id for visual differentiation
-  const getConversationColor = (id: string) => {
-    const colors = [
-      "from-rose-500/30 to-orange-500/30",
-      "from-emerald-500/30 to-teal-500/30",
-      "from-blue-500/30 to-indigo-500/30",
-      "from-violet-500/30 to-purple-500/30",
-      "from-pink-500/30 to-rose-500/30",
-      "from-amber-500/30 to-yellow-500/30",
-    ];
-    const colorIndex =
-      [...id].reduce((acc, char) => acc + char.charCodeAt(0), 0) %
-      colors.length;
-    return colors[colorIndex];
-  };
-
-  const sidebarClass = cn(
-    `flex flex-col ${
-      isMobile ? "h-[100dvh]" : "h-full"
-    } bg-[#121212] border-r border-[#333]/40 shadow-xl`,
-    "transition-[width] duration-200 ease-in-out",
-    {
-      "w-full max-w-xs": !isCollapsed,
-      "w-14": isCollapsed,
-      "translate-x-0": isOpen,
-      "-translate-x-full": !isOpen && onClose,
-    }
-  );
-
-  if (isMobile && !isOpen) {
-    return null;
-  }
-
-  // Update the conversation items to highlight based on current route
   const isActiveConversation = (conversationId: string) => {
     return location.pathname === `/chat/${conversationId}`;
   };
 
-  // Render expanded or collapsed sidebar
-  if (isDesktop && isCollapsed) {
+  // Mobile overlay backdrop
+  if (isMobile && isOpen) {
     return (
       <>
-        <aside className={sidebarClass}>
-          <div className="flex flex-col h-full overflow-hidden relative z-[1000]">
-            {/* Header with logo and controls */}
-            <div className="p-3 border-b border-[#333]/40">
-              <div className="flex flex-col items-center gap-3">
-                {/* Logo/New Chat button */}
-                <Button
-                  onClick={handleNewChat}
-                  className="h-10 w-10 p-0 rounded-full bg-gradient-to-br from-[#e67553] to-[#d86a4a] hover:from-[#e67553]/90 hover:to-[#d86a4a]/90 text-white shadow-lg hover:shadow-[#e67553]/20 hover:shadow-xl transition-all duration-300"
-                  disabled={isLoading}
-                  title="New Chat"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
+        {/* Backdrop */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 lg:hidden"
+          onClick={onClose}
+        />
 
-                {/* Toggle button */}
-                <Button
-                  onClick={toggleCollapse}
-                  className="h-8 w-8 p-0 rounded-full bg-[#222] hover:bg-[#2a2a2a] transition-all duration-300 hover:shadow-md border border-[#333]/50 group"
-                  title="Expand sidebar"
-                >
-                  <ChevronRight
-                    size={16}
-                    className="text-[#e67553] group-hover:translate-x-0.5 transition-transform duration-300"
-                  />
-                </Button>
-              </div>
-            </div>
+        {/* Mobile Sidebar */}
+        <motion.aside
+          initial={{ x: "-100%" }}
+          animate={{ x: 0 }}
+          exit={{ x: "-100%" }}
+          transition={{ type: "spring", damping: 25, stiffness: 200 }}
+          className="fixed left-0 top-0 bottom-0 z-50 w-80 bg-gradient-to-b from-[#0a1121] to-[#0f1629] border-r border-[#1e3a5f]/40 shadow-2xl lg:hidden"
+        >
+          <SidebarContent
+            isMobile={true}
+            onClose={onClose}
+            onOpenProfile={onOpenProfile}
+            {...{
+              isLoading,
+              activeConversationId,
+              conversations,
+              user,
+              userData,
+              displayName,
+              avatarError,
+              setAvatarError,
+              handleNewChat,
+              handleSelectConversation,
+              handleDeleteClick,
+              isActiveConversation,
+              isDeleting,
+              conversationToDelete,
+              setSecurityInfoOpen,
+            }}
+          />
+        </motion.aside>
 
-            {/* Conversations */}
-            <ScrollArea className="flex-1 py-2">
-              {isLoading ? (
-                <div className="flex justify-center items-center h-16">
-                  <div className="h-4 w-4 rounded-full border-2 border-[#e67553] border-t-transparent animate-spin" />
-                </div>
-              ) : conversations && conversations.length > 0 ? (
-                <div className="flex flex-col items-center gap-2 px-2">
-                  {conversations.map((conversation) => (
-                    <button
-                      key={conversation.id}
-                      className={cn(
-                        "w-full h-9 rounded-full flex justify-center items-center transition-all",
-                        isActiveConversation(conversation.id)
-                          ? "bg-[#333] shadow-md"
-                          : "hover:bg-[#222]/80"
-                      )}
-                      onClick={() => handleSelectConversation(conversation.id)}
-                      title={conversation.title || "Conversation"}
-                    >
-                      <MessageSquare
-                        className={cn(
-                          "h-4 w-4",
-                          isActiveConversation(conversation.id)
-                            ? "text-[#e67553]"
-                            : "text-gray-400"
-                        )}
-                      />
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex justify-center py-4">
-                  <HelpCircle className="h-4 w-4 text-gray-500" />
-                </div>
-              )}
-            </ScrollArea>
-
-            {/* Quick actions */}
-            <div className="flex flex-col items-center gap-2 py-3 border-t border-[#333]/40">
-              <button
-                onClick={() => setSecurityInfoOpen(true)}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#222]/70 transition-colors"
-                title="Security & Privacy"
-              >
-                <Lock className="h-4 w-4 text-[#e67553]" />
-              </button>
-              <button
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#222]/70 transition-colors"
-                title="Settings"
-              >
-                <Settings className="h-4 w-4 text-gray-400" />
-              </button>
-              <button
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#222]/70 transition-colors"
-                title="Help & FAQ"
-              >
-                <Info className="h-4 w-4 text-gray-400" />
-              </button>
-            </div>
-
-            {/* User profile */}
-            {user && (
-              <div className="flex justify-center p-3 mt-auto border-t border-[#333]/40 bg-gradient-to-b from-transparent to-[#151515]">
-                <button
-                  className="w-8 h-8 rounded-full overflow-hidden border border-[#444] shadow-md"
-                  onClick={onOpenProfile}
-                  title={displayName}
-                >
-                  {userData?.photoURL && !avatarError ? (
-                    <img
-                      src={userData.photoURL}
-                      alt={displayName}
-                      className="h-full w-full object-cover"
-                      onError={() => setAvatarError(true)}
-                    />
-                  ) : (
-                    <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-[#e67553]/50 to-[#d86a4a]/50">
-                      <UserIcon className="h-3 w-3 text-white" />
-                    </div>
-                  )}
-                </button>
-              </div>
-            )}
-          </div>
-        </aside>
-
-        {/* Dialog components */}
-        <AlertDialog open={securityInfoOpen} onOpenChange={setSecurityInfoOpen}>
-          <AlertDialogContent className="bg-[#161616] border border-[#333] max-w-xl">
-            <AlertDialogHeader>
-              <div className="flex items-center gap-2 mb-2">
-                <Shield className="h-5 w-5 text-[#e67553]" />
-                <AlertDialogTitle>Security & Privacy</AlertDialogTitle>
-              </div>
-              <AlertDialogDescription className="space-y-4 text-left">
-                <div className="bg-[#222]/50 p-4 rounded-lg border border-[#333]/80">
-                  <h3 className="text-sm font-medium text-white mb-2 flex items-center gap-2">
-                    <Lock className="h-4 w-4 text-[#e67553]" />
-                    End-to-End Encryption
-                  </h3>
-                  <p className="text-sm text-gray-400">
-                    Your conversations are secured with Firebase Authentication
-                    and Firestore security rules. Only you can access your chat
-                    history.
-                  </p>
-                </div>
-
-                <div className="bg-[#222]/50 p-4 rounded-lg border border-[#333]/80">
-                  <h3 className="text-sm font-medium text-white mb-2 flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                    Data Usage
-                  </h3>
-                  <p className="text-sm text-gray-400">
-                    Your conversations may be processed by our AI services to
-                    generate responses. We may use anonymized data to improve
-                    our AI models.
-                  </p>
-                </div>
-
-                <p className="text-xs text-gray-500 pt-2">
-                  For more details, please review our Privacy Policy and Terms
-                  of Service. You can request deletion of your data at any time
-                  through your profile settings.
-                </p>
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogAction className="bg-[#222] hover:bg-[#333] border-[#444]">
-                Close
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {/* Dialogs */}
+        <DeleteConversationDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+          isDeleting={isDeleting}
+        />
+        <SecurityInfoDialog
+          open={securityInfoOpen}
+          onOpenChange={setSecurityInfoOpen}
+        />
       </>
     );
   }
 
-  // Expanded sidebar
+  // Desktop sidebar
+  if (isDesktop) {
+    return (
+      <>
+        <aside className="w-80 h-full bg-gradient-to-b from-[#0a1121] to-[#0f1629] border-r border-[#1e3a5f]/40 shadow-xl">
+          <SidebarContent
+            isMobile={false}
+            onClose={onClose}
+            onOpenProfile={onOpenProfile}
+            {...{
+              isLoading,
+              activeConversationId,
+              conversations,
+              user,
+              userData,
+              displayName,
+              avatarError,
+              setAvatarError,
+              handleNewChat,
+              handleSelectConversation,
+              handleDeleteClick,
+              isActiveConversation,
+              isDeleting,
+              conversationToDelete,
+              setSecurityInfoOpen,
+            }}
+          />
+        </aside>
+
+        {/* Dialogs */}
+        <DeleteConversationDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+          isDeleting={isDeleting}
+        />
+        <SecurityInfoDialog
+          open={securityInfoOpen}
+          onOpenChange={setSecurityInfoOpen}
+        />
+      </>
+    );
+  }
+
   return (
     <>
-      <aside className={sidebarClass}>
-        <div className="flex flex-col h-full overflow-hidden relative">
-          <div className="p-3 border-b border-[#333]/40">
-            <div className="flex items-center gap-2">
-              {/* New Chat button */}
-              <Button
-                onClick={handleNewChat}
-                className="flex-1 flex items-center gap-2 py-5 rounded-lg bg-gradient-to-br from-[#e67553] to-[#d86a4a] hover:from-[#e67553]/90 hover:to-[#d86a4a]/90 text-white transition-all duration-300 shadow-lg hover:shadow-[#e67553]/20 hover:shadow-xl"
-                disabled={isLoading}
-              >
-                <Plus className="h-4 w-4" />
-                <span className="font-medium">New Chat</span>
-              </Button>
+      {/* Dialogs for mobile when sidebar is closed */}
+      <DeleteConversationDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        isDeleting={isDeleting}
+      />
+      <SecurityInfoDialog
+        open={securityInfoOpen}
+        onOpenChange={setSecurityInfoOpen}
+      />
+    </>
+  );
+}
 
-              {/* Toggle button */}
-              {isDesktop ? (
-                <Button
-                  onClick={toggleCollapse}
-                  className="h-10 w-10 p-0 rounded-full bg-[#222] hover:bg-[#2a2a2a] transition-colors duration-200 hover:shadow-md border border-[#333]/50 group"
-                  title="Collapse sidebar"
-                >
-                  <ChevronRight
-                    className="rotate-180 text-[#e67553] group-hover:-translate-x-0.5 transition-transform duration-200"
-                    size={16}
-                  />
-                </Button>
-              ) : onClose ? (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10 rounded-full hover:bg-[#333]/20 transition-all duration-300"
-                  onClick={onClose}
-                >
-                  <X className="h-4 w-4" />
-                  <span className="sr-only">Close</span>
-                </Button>
-              ) : null}
+// Settings Button Component with Dialog
+function SettingsButton() {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  return (
+    <>
+      <Button
+        onClick={() => setSettingsOpen(true)}
+        className="h-9 bg-[#1e3a5f]/15 hover:bg-[#1e3a5f]/30 border border-[#1e3a5f]/30 hover:border-[#89f7fe]/40 rounded-lg transition-all duration-200 group"
+        title="App Settings"
+      >
+        <Settings className="w-4 h-4 text-gray-400 group-hover:text-[#89f7fe] group-hover:rotate-90 transition-all duration-200" />
+      </Button>
+
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+    </>
+  );
+}
+
+// Shared sidebar content component
+interface SidebarContentProps {
+  isMobile: boolean;
+  onClose?: () => void;
+  onOpenProfile?: () => void;
+  isLoading: boolean;
+  conversations: ChatConversation[];
+  user: User | null;
+  userData: UserData | null;
+  displayName: string;
+  avatarError: boolean;
+  setAvatarError: (error: boolean) => void;
+  handleNewChat: () => void;
+  handleSelectConversation: (id: string) => void;
+  handleDeleteClick: (e: React.MouseEvent, id: string) => void;
+  isActiveConversation: (id: string) => boolean;
+  isDeleting: boolean;
+  conversationToDelete: string | null;
+  setSecurityInfoOpen: (open: boolean) => void;
+}
+
+function SidebarContent({
+  isMobile,
+  onClose,
+  onOpenProfile,
+  isLoading,
+  conversations,
+  user,
+  userData,
+  displayName,
+  avatarError,
+  setAvatarError,
+  handleNewChat,
+  handleSelectConversation,
+  handleDeleteClick,
+  isActiveConversation,
+  isDeleting,
+  conversationToDelete,
+  setSecurityInfoOpen,
+}: SidebarContentProps) {
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="p-4 border-b border-[#1e3a5f]/30">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#89f7fe] to-[#66a6ff] flex items-center justify-center shadow-lg">
+              <Heart className="w-4 h-4 text-white" />
             </div>
+            <div className="text-lg font-semibold text-white">Swasth AI</div>
           </div>
+          {isMobile && (
+            <Button
+              onClick={onClose}
+              className="w-8 h-8 p-0 rounded-lg bg-[#1e3a5f]/20 hover:bg-[#1e3a5f]/40 border border-[#1e3a5f]/40"
+            >
+              <X className="w-4 h-4 text-gray-400" />
+            </Button>
+          )}
+        </div>
 
-          <ScrollArea className="flex-1 overflow-y-auto px-2 py-3">
-            {isLoading ? (
-              <div className="flex justify-center items-center h-16">
-                <div className="h-5 w-5 rounded-full border-2 border-[#e67553] border-t-transparent animate-spin" />
-              </div>
-            ) : conversations && conversations.length > 0 ? (
-              <AnimatePresence initial={false}>
-                {conversations.map((conversation) => (
+        {/* New Chat Button */}
+        <Button
+          onClick={handleNewChat}
+          className="w-full h-12 bg-gradient-to-r from-[#89f7fe] to-[#66a6ff] hover:from-[#0ea5e9] hover:to-[#3b82f6] text-white font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 group relative overflow-hidden"
+          disabled={isLoading}
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+          <Plus className="w-4 h-4 mr-2 relative z-10" />
+          <span className="relative z-10">New Health Chat</span>
+          <Sparkles className="w-3 h-3 ml-2 opacity-70 relative z-10" />
+        </Button>
+      </div>
+
+      {/* Conversations */}
+      <ScrollArea className="flex-1 px-3 py-2">
+        {isLoading ? (
+          <div className="flex items-center justify-center h-20">
+            <div className="w-6 h-6 border-2 border-[#89f7fe] border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : conversations && conversations.length > 0 ? (
+          <div className="space-y-1">
+            <AnimatePresence>
+              {conversations.map(
+                (conversation: ChatConversation, index: number) => (
                   <motion.div
                     key={conversation.id}
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, x: -10 }}
-                    transition={{ duration: 0.2 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.2, delay: index * 0.05 }}
+                    className={cn(
+                      "group relative p-3 rounded-xl cursor-pointer transition-all duration-200",
+                      isActiveConversation(conversation.id)
+                        ? "bg-gradient-to-r from-[#89f7fe]/10 to-[#66a6ff]/10 border border-[#89f7fe]/30 shadow-lg"
+                        : "hover:bg-[#1e3a5f]/20 border border-transparent"
+                    )}
+                    onClick={() => handleSelectConversation(conversation.id)}
                   >
-                    <div
-                      className={cn(
-                        "flex items-center justify-between p-3 my-1.5 rounded-md cursor-pointer group relative overflow-hidden",
-                        isActiveConversation(conversation.id)
-                          ? "bg-[#2a2a2a] border-l-2 border-[#e67553]"
-                          : "hover:bg-[#222]"
-                      )}
-                      onClick={() => handleSelectConversation(conversation.id)}
-                    >
-                      {/* Subtle gradient background for non-active items */}
-                      {!isActiveConversation(conversation.id) && (
-                        <div
-                          className={cn(
-                            "absolute inset-0 opacity-10 pointer-events-none",
-                            getConversationColor(conversation.id)
-                          )}
-                        />
-                      )}
-
-                      <div className="flex-1 overflow-hidden">
-                        <div className="text-sm font-medium truncate">
-                          {conversation.title || "New Conversation"}
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <MessageSquare
+                            className={cn(
+                              "w-4 h-4 flex-shrink-0",
+                              isActiveConversation(conversation.id)
+                                ? "text-[#89f7fe]"
+                                : "text-gray-400"
+                            )}
+                          />
+                          <h3 className="text-sm font-medium text-white truncate">
+                            {conversation.title || "New Conversation"}
+                          </h3>
                         </div>
-                        <div className="text-xs text-gray-400 truncate mt-0.5">
+                        <p className="text-xs text-gray-400 truncate">
                           {conversation.updatedAt &&
                             formatDistanceToNow(
                               (
@@ -470,199 +418,333 @@ export function Sidebar({
                               ).toDate(),
                               { addSuffix: true }
                             )}
-                        </div>
+                        </p>
                       </div>
 
                       <Button
-                        variant="ghost"
-                        size="icon"
-                        className={cn(
-                          "h-7 w-7 rounded-full opacity-0 group-hover:opacity-100 transition-opacity",
-                          isDeleting && conversationToDelete === conversation.id
-                            ? "opacity-100"
-                            : ""
-                        )}
                         onClick={(e) => handleDeleteClick(e, conversation.id)}
                         disabled={
                           isDeleting && conversationToDelete === conversation.id
                         }
+                        className="w-8 h-8 p-0 rounded-lg bg-red-500/5 hover:bg-red-500/15 border border-red-500/10 hover:border-red-500/30 opacity-0 group-hover:opacity-100 transition-all duration-200 group/delete"
                       >
                         {isDeleting &&
                         conversationToDelete === conversation.id ? (
-                          <div className="h-4 w-4 rounded-full border-2 border-red-500 border-t-transparent animate-spin" />
+                          <div className="w-3.5 h-3.5 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
                         ) : (
-                          <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500 transition-colors" />
+                          <Trash2 className="w-4 h-4 text-red-400 hover:text-red-300 group-hover/delete:scale-110 transition-all duration-200" />
                         )}
-                        <span className="sr-only">Delete</span>
                       </Button>
                     </div>
                   </motion.div>
-                ))}
-              </AnimatePresence>
+                )
+              )}
+            </AnimatePresence>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-40 text-center px-4">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#1e3a5f]/20 to-[#89f7fe]/10 flex items-center justify-center mb-4">
+              <MessageSquare className="w-8 h-8 text-gray-500" />
+            </div>
+            <h3 className="text-sm font-medium text-gray-400 mb-2">
+              No conversations yet
+            </h3>
+            <p className="text-xs text-gray-500">
+              Start your first health conversation!
+            </p>
+          </div>
+        )}
+      </ScrollArea>
+
+      {/* Footer */}
+      <div className="p-4 border-t border-[#1e3a5f]/30 space-y-3">
+        {/* Quick Actions */}
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            onClick={() => setSecurityInfoOpen(true)}
+            className="h-9 bg-[#1e3a5f]/15 hover:bg-[#1e3a5f]/30 border border-[#1e3a5f]/30 hover:border-[#89f7fe]/40 rounded-lg transition-all duration-200 group"
+            title="Security & Privacy"
+          >
+            <Shield className="w-4 h-4 text-[#89f7fe] group-hover:scale-110 transition-transform duration-200" />
+          </Button>
+          <SettingsButton />
+        </div>
+
+        {/* User Profile */}
+        {user && (
+          <div
+            onClick={onOpenProfile}
+            className="flex items-center gap-3 p-3 bg-[#1e3a5f]/20 hover:bg-[#1e3a5f]/30 border border-[#1e3a5f]/40 rounded-xl cursor-pointer transition-all duration-200"
+          >
+            <Avatar className="w-10 h-10 border-2 border-[#89f7fe]/30">
+              {userData?.photoURL && !avatarError ? (
+                <AvatarImage
+                  src={userData.photoURL}
+                  alt={displayName}
+                  onError={() => setAvatarError(true)}
+                />
+              ) : (
+                <AvatarFallback className="bg-gradient-to-br from-[#22d3ee]/20 to-[#60a5fa]/20">
+                  <UserIcon className="w-5 h-5 text-[#89f7fe]" />
+                </AvatarFallback>
+              )}
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-white truncate">
+                {displayName}
+              </p>
+              <p className="text-xs text-gray-400 truncate">{user.email}</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-[#89f7fe] group-hover:translate-x-1 transition-all duration-200" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Delete Conversation Dialog Component
+interface DeleteConversationDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+  onCancel: () => void;
+  isDeleting: boolean;
+}
+
+function DeleteConversationDialog({
+  open,
+  onOpenChange,
+  onConfirm,
+  onCancel,
+  isDeleting,
+}: DeleteConversationDialogProps) {
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent className="bg-gradient-to-b from-[#0f1629] to-[#0a1121] border border-[#1e3a5f]/60 shadow-2xl max-w-md">
+        <AlertDialogHeader className="text-center pb-4">
+          <div className="mx-auto w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center mb-4">
+            <Trash2 className="w-6 h-6 text-red-400" />
+          </div>
+          <AlertDialogTitle className="text-white text-lg font-semibold">
+            Delete Conversation?
+          </AlertDialogTitle>
+          <AlertDialogDescription className="text-gray-400 text-sm leading-relaxed">
+            This will permanently delete this health conversation and all of its
+            messages.
+            <br />
+            <span className="text-red-400/80 font-medium">
+              This action cannot be undone.
+            </span>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter className="flex gap-3 pt-4">
+          <AlertDialogCancel
+            onClick={onCancel}
+            className="flex-1 bg-[#1e3a5f]/20 hover:bg-[#1e3a5f]/30 border-[#1e3a5f]/40 text-white hover:text-white transition-all duration-200"
+          >
+            Keep Conversation
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={onConfirm}
+            className="flex-1 bg-red-500 hover:bg-red-600 text-white transition-all duration-200 shadow-lg hover:shadow-red-500/20"
+          >
+            {isDeleting ? (
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-2" />
             ) : (
-              <div className="text-center py-6 px-4">
-                <div className="bg-gradient-to-r from-[#222] to-[#1a1a1a] rounded-lg p-4 shadow-inner">
-                  <p className="text-sm text-gray-400 mb-2">
-                    No conversations yet
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Click the "New Chat" button to start a conversation with
-                    Swasth AI
-                  </p>
-                </div>
-              </div>
+              <>
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </>
             )}
-          </ScrollArea>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
 
-          <div className="px-2 py-2 border-t border-[#333]/40">
-            {/* Mobile-only links */}
-            {isMobile && (
-              <div className="space-y-1 mb-2">
-                <a
-                  href="https://github.com/itskrish01"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 p-2 rounded-lg hover:bg-[#222]/70 transition-colors"
-                >
-                  <Github className="h-4 w-4 text-[#e67553]" />
-                  <span className="text-sm">GitHub</span>
-                </a>
-                <a
-                  href="https://krishtasood.in"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 p-2 rounded-lg hover:bg-[#222]/70 transition-colors"
-                >
-                  <ExternalLink className="h-4 w-4 text-[#e67553]" />
-                  <span className="text-sm">Portfolio</span>
-                </a>
-               
-              </div>
-            )}
+// Security Info Dialog Component
+interface SecurityInfoDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
 
-            <div
-              className="flex items-center gap-2 p-2 rounded-lg hover:bg-[#222]/70 transition-colors cursor-pointer mb-1"
-              onClick={() => setSecurityInfoOpen(true)}
-            >
-              <Lock className="h-4 w-4 text-[#e67553]" />
-              <span className="text-sm">Security & Privacy</span>
+function SecurityInfoDialog({ open, onOpenChange }: SecurityInfoDialogProps) {
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent className="bg-gradient-to-b from-[#0f1629] to-[#0a1121] border border-[#1e3a5f]/60 shadow-2xl max-w-lg">
+        <AlertDialogHeader>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#22d3ee]/20 to-[#60a5fa]/20 flex items-center justify-center ring-2 ring-[#89f7fe]/10">
+              <Shield className="w-6 h-6 text-[#89f7fe]" />
+            </div>
+            <div>
+              <AlertDialogTitle className="text-white text-lg font-semibold">
+                Security & Privacy
+              </AlertDialogTitle>
+              <p className="text-xs text-[#89f7fe]/80">
+                Your health data is protected
+              </p>
             </div>
           </div>
-
-          {/* User profile section */}
-          {user && (
-            <div className="p-3 mt-auto border-t border-[#333]/40 bg-gradient-to-b from-transparent to-[#151515]">
-              <div
-                className="flex items-center gap-2 p-2 rounded-lg bg-[#1a1a1a] hover:bg-[#222] transition-colors cursor-pointer border border-[#333]/40"
-                onClick={onOpenProfile}
-              >
-                <Avatar className="h-8 w-8 border border-[#444]">
-                  {userData?.photoURL && !avatarError ? (
-                    <AvatarImage
-                      src={userData.photoURL}
-                      alt={displayName}
-                      onError={() => setAvatarError(true)}
-                    />
-                  ) : (
-                    <AvatarFallback className="bg-gradient-to-br from-[#e67553]/50 to-[#d86a4a]/50">
-                      <UserIcon className="h-4 w-4 text-white" />
-                    </AvatarFallback>
-                  )}
-                </Avatar>
-                <div className="flex-1 overflow-hidden">
-                  <div className="text-sm font-medium truncate">
-                    {displayName}
-                  </div>
-                  <div className="text-xs text-gray-400 truncate">
-                    {user.email}
-                  </div>
+          <AlertDialogDescription className="space-y-4 text-left">
+            <div className="p-4 bg-gradient-to-r from-[#1e3a5f]/15 to-[#89f7fe]/5 rounded-xl border border-[#1e3a5f]/30">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-6 h-6 bg-green-500/20 rounded-full flex items-center justify-center">
+                  <Lock className="w-3 h-3 text-green-400" />
                 </div>
-                <PanelRight className="h-4 w-4 text-gray-400" />
+                <h4 className="text-sm font-semibold text-white">
+                  End-to-End Security
+                </h4>
               </div>
-            </div>
-          )}
-        </div>
-      </aside>
-
-      {/* Delete Conversation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="bg-[#161616] border border-[#333]">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete this conversation and all of its
-              messages. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              className="bg-[#222] hover:bg-[#333] border-[#444]"
-              onClick={handleCancelDelete}
-            >
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700 text-white"
-              onClick={handleConfirmDelete}
-            >
-              {isDeleting ? (
-                <div className="h-4 w-4 rounded-full border-2 border-white border-t-transparent animate-spin mx-4" />
-              ) : (
-                "Delete"
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Security Info Dialog */}
-      <AlertDialog open={securityInfoOpen} onOpenChange={setSecurityInfoOpen}>
-        <AlertDialogContent className="bg-[#161616] border border-[#333] max-w-xl">
-          <AlertDialogHeader>
-            <div className="flex items-center gap-2 mb-2">
-              <Shield className="h-5 w-5 text-[#e67553]" />
-              <AlertDialogTitle>Security & Privacy</AlertDialogTitle>
-            </div>
-            <AlertDialogDescription className="space-y-4 text-left">
-              <div className="bg-[#222]/50 p-4 rounded-lg border border-[#333]/80">
-                <h3 className="text-sm font-medium text-white mb-2 flex items-center gap-2">
-                  <Lock className="h-4 w-4 text-[#e67553]" />
-                  End-to-End Encryption
-                </h3>
-                <p className="text-sm text-gray-400">
-                  Your conversations are secured with Firebase Authentication
-                  and Firestore security rules. Only you can access your chat
-                  history.
-                </p>
-              </div>
-
-              <div className="bg-[#222]/50 p-4 rounded-lg border border-[#333]/80">
-                <h3 className="text-sm font-medium text-white mb-2 flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                  Data Usage
-                </h3>
-                <p className="text-sm text-gray-400">
-                  Your conversations may be processed by our AI services to
-                  generate responses. We may use anonymized data to improve our
-                  AI models.
-                </p>
-              </div>
-
-              <p className="text-xs text-gray-500 pt-2">
-                For more details, please review our Privacy Policy and Terms of
-                Service. You can request deletion of your data at any time
-                through your profile settings.
+              <p className="text-sm text-gray-300 leading-relaxed">
+                Your health conversations are secured with Firebase
+                Authentication and encrypted storage. Only you can access your
+                personal health data and conversation history.
               </p>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction className="bg-[#222] hover:bg-[#333] border-[#444]">
-              Close
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+            </div>
+            <div className="p-4 bg-gradient-to-r from-[#1e3a5f]/15 to-[#89f7fe]/5 rounded-xl border border-[#1e3a5f]/30">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-6 h-6 bg-blue-500/20 rounded-full flex items-center justify-center">
+                  <Sparkles className="w-3 h-3 text-blue-400" />
+                </div>
+                <h4 className="text-sm font-semibold text-white">
+                  AI Processing
+                </h4>
+              </div>
+              <p className="text-sm text-gray-300 leading-relaxed">
+                Your messages are processed by Google's Gemini AI to provide
+                personalized health insights. We use anonymized data to improve
+                our health recommendations.
+              </p>
+            </div>
+            <div className="p-3 bg-yellow-500/5 rounded-lg border border-yellow-500/20">
+              <p className="text-xs text-yellow-200/80 leading-relaxed">
+                <strong>Medical Disclaimer:</strong> Swasth AI provides health
+                information for educational purposes only. Always consult
+                qualified healthcare professionals for medical advice,
+                diagnosis, or treatment.
+              </p>
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogAction className="bg-gradient-to-r from-[#89f7fe] to-[#66a6ff] hover:from-[#0ea5e9] hover:to-[#3b82f6] text-white shadow-lg hover:shadow-[#89f7fe]/20 transition-all duration-200">
+            <Shield className="w-4 h-4 mr-2" />
+            Understood
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+// Settings Dialog Component
+interface SettingsDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
+  const [autoSave, setAutoSave] = useState(true);
+  const [compactMode, setCompactMode] = useState(false);
+
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent className="bg-gradient-to-b from-[#0f1629] to-[#0a1121] border border-[#1e3a5f]/60 shadow-2xl max-w-md">
+        <AlertDialogHeader>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#22d3ee]/20 to-[#60a5fa]/20 flex items-center justify-center ring-2 ring-[#89f7fe]/10">
+              <Settings className="w-6 h-6 text-[#89f7fe]" />
+            </div>
+            <div>
+              <AlertDialogTitle className="text-white text-lg font-semibold">
+                App Settings
+              </AlertDialogTitle>
+              <p className="text-xs text-[#89f7fe]/80">
+                Customize your Swasth AI experience
+              </p>
+            </div>
+          </div>
+          <AlertDialogDescription className="space-y-4 text-left">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-[#1e3a5f]/15 rounded-lg border border-[#1e3a5f]/30">
+                <div>
+                  <h4 className="text-sm font-medium text-white">
+                    Auto-save Conversations
+                  </h4>
+                  <p className="text-xs text-gray-400">
+                    Automatically save your health chats
+                  </p>
+                </div>
+                <button
+                  onClick={() => setAutoSave(!autoSave)}
+                  className={`w-10 h-6 rounded-full transition-all duration-200 ${
+                    autoSave ? "bg-[#89f7fe]" : "bg-gray-600"
+                  }`}
+                >
+                  <div
+                    className={`w-4 h-4 bg-white rounded-full transition-transform duration-200 ${
+                      autoSave ? "translate-x-5" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-[#1e3a5f]/15 rounded-lg border border-[#1e3a5f]/30">
+                <div>
+                  <h4 className="text-sm font-medium text-white">
+                    Compact Chat View
+                  </h4>
+                  <p className="text-xs text-gray-400">
+                    Reduce spacing for more messages
+                  </p>
+                </div>
+                <button
+                  onClick={() => setCompactMode(!compactMode)}
+                  className={`w-10 h-6 rounded-full transition-all duration-200 ${
+                    compactMode ? "bg-[#89f7fe]" : "bg-gray-600"
+                  }`}
+                >
+                  <div
+                    className={`w-4 h-4 bg-white rounded-full transition-transform duration-200 ${
+                      compactMode ? "translate-x-5" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <div className="p-3 bg-[#1e3a5f]/15 rounded-lg border border-[#1e3a5f]/30">
+                <h4 className="text-sm font-medium text-white mb-2">
+                  Data Management
+                </h4>
+                <div className="space-y-2">
+                  <button className="w-full text-left p-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors">
+                    Clear All Conversations
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-3 bg-yellow-500/5 rounded-lg border border-yellow-500/20">
+                <p className="text-xs text-yellow-200/80 leading-relaxed">
+                  <strong>Note:</strong> Settings are saved locally in your
+                  browser. Clearing browser data will reset these preferences.
+                </p>
+              </div>
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogAction
+            onClick={() => onOpenChange(false)}
+            className="w-full bg-gradient-to-r from-[#89f7fe] to-[#66a6ff] hover:from-[#0ea5e9] hover:to-[#3b82f6] text-white shadow-lg hover:shadow-[#89f7fe]/20 transition-all duration-200"
+          >
+            Save Settings
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 

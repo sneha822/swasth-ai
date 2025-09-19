@@ -14,8 +14,3 @@ export const getGeminiModel = () => {
   });
 };
 
-export const getGeminiImageModel = () => {
-  return genAI.getGenerativeModel({
-    model: "gemini-2.0-flash-exp-image-generation",
-  });
-};

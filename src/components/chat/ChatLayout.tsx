@@ -3,7 +3,7 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { ChatContainer } from "./ChatContainer";
 import { ChatInput } from "./ChatInput";
 import { useChatContext } from "@/hooks/useChatContext";
-import { ChatProvider } from "@/hooks/useChatContext";
+import { ChatProvider } from "@/hooks/ChatProvider";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardLayout } from "../layout/DashboardLayout";
@@ -60,7 +60,7 @@ function ChatLayoutContent() {
               <p className="text-gray-400 mb-4">{chatError}</p>
               <Button
                 onClick={() => navigate("/new")}
-                className="bg-gradient-to-r from-[#e67553] to-[#d86a4a] text-white hover:from-[#e67553]/90 hover:to-[#d86a4a]/90"
+                className="bg-gradient-to-r from-[#89f7fe] to-[#66a6ff] text-white hover:from-[#89f7fe]/90 hover:to-[#66a6ff]/90"
               >
                 Start New Chat
               </Button>

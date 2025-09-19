@@ -1,4 +1,4 @@
-import { useContext, useState, ReactNode } from "react";
+import { useContext, useState, ReactNode, useEffect } from "react";
 import { Message } from "../lib/gemini/service";
 import { saveMessage } from "../lib/chat-service";
 import { MessageContext } from "../contexts/MessageContext";
@@ -16,6 +16,17 @@ export function useMessageContext() {
 export function MessageProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Listen for custom AI message events
+  useEffect(() => {
+    const handleAddAIMessage = (event: any) => {
+      const aiMessage = event.detail;
+      setMessages((prev) => [...prev, aiMessage]);
+    };
+
+    window.addEventListener('addAIMessage', handleAddAIMessage);
+    return () => window.removeEventListener('addAIMessage', handleAddAIMessage);
+  }, []);
 
   const handleMessage = async (
     content: string,

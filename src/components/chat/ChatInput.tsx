@@ -48,12 +48,21 @@ export function ChatInput() {
     [input, location.pathname, sendMessage, navigate, isProcessing]
   );
 
+  const adjustHeight = useCallback(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = "auto";
+      const newHeight = Math.min(Math.max(textarea.scrollHeight, 56), 200);
+      textarea.style.height = `${newHeight}px`;
+    }
+  }, []);
+
   const handleChange = React.useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       setInput(e.target.value);
       adjustHeight();
     },
-    []
+    [adjustHeight]
   );
 
   const handleKeyDown = React.useCallback(
@@ -65,15 +74,6 @@ export function ChatInput() {
     },
     [handleSubmit]
   );
-
-  const adjustHeight = useCallback(() => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = "auto";
-      const newHeight = Math.min(Math.max(textarea.scrollHeight, 56), 200);
-      textarea.style.height = `${newHeight}px`;
-    }
-  }, []);
 
   const focusInput = React.useCallback(() => {
     textareaRef.current?.focus();
@@ -95,20 +95,20 @@ export function ChatInput() {
               onKeyDown={handleKeyDown}
               placeholder="Ask Swasth AI anything..."
               className={cn(
-                "w-full rounded-3xl pl-4 pr-10 py-4 placeholder:text-white/40 border-none ring-[#333]/30 text-white resize-none text-wrap",
-                "min-h-[56px] bg-[#1A1A1A] focus-visible:ring-2 focus-visible:ring-[#e67553]/30 transition-all duration-200"
+                "w-full rounded-3xl pl-4 pr-12 py-4 placeholder:text-white/50 text-white resize-none text-wrap",
+                "min-h-[56px] bg-[#0f1629]/95 border border-white/10 focus-visible:border-[#89f7fe]/40 focus-visible:ring-2 focus-visible:ring-[#89f7fe]/40 transition-all duration-200 shadow-md shadow-black/20"
               )}
             />
 
             <button
               type="submit"
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-xl bg-[#222] py-1 px-1"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-xl bg-gradient-to-r from-[#89f7fe] to-[#66a6ff] hover:from-[#89f7fe]/90 hover:to-[#66a6ff]/90 py-2 px-2 shadow-lg shadow-[#89f7fe]/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={!input.trim() || isProcessing}
             >
               <ArrowUp
                 className={cn(
-                  "w-4 h-4 transition-opacity text-[#e67553]",
-                  input && !isProcessing ? "opacity-100" : "opacity-30"
+                  "w-4 h-4 transition-opacity text-white",
+                  input && !isProcessing ? "opacity-100" : "opacity-70"
                 )}
               />
             </button>

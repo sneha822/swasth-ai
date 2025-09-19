@@ -62,7 +62,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <Header
           onOpenSidebar={isMobile ? toggleMobileSidebar : toggleDesktopSidebar}
           onOpenProfile={() => setShowProfileModal(true)}
-          isDesktopSidebarOpen={desktopSidebarOpen}
         />
         <main className="flex-1 overflow-hidden relative">{children}</main>
       </div>

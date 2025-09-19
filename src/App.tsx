@@ -1,10 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "./hooks/useAuth";
+import { AuthProvider } from "./hooks/AuthProvider";
 import { ChatLayout } from "./components/chat/ChatLayout";
 import { AuthPage } from "./components/auth/AuthPage";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { MessageProvider } from "./hooks/useMessageContext";
-import { ChatProvider } from "./hooks/useChatContext";
+import { ChatProvider } from "./hooks/ChatProvider";
 
 export default function App() {
   return (
