@@ -1,0 +1,11 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="600" fill="#222222"/>
+  <rect x="50" y="50" width="700" height="500" rx="20" ry="20" fill="#333333" stroke="#e67553" stroke-width="2"/>
+  <text x="400" y="150" font-family="Arial, sans-serif" font-size="36" text-anchor="middle" fill="#e67553">Image Generation Not Available</text>
+  <text x="400" y="220" font-family="Arial, sans-serif" font-size="24" text-anchor="middle" fill="#ffffff">The requested image could not be generated.</text>
+  <text x="400" y="270" font-family="Arial, sans-serif" font-size="18" text-anchor="middle" fill="#cccccc">Swasth AI currently does not support image generation.</text>
+  <g transform="translate(335, 330)">
+    <circle cx="65" cy="65" r="60" fill="none" stroke="#e67553" stroke-width="5"/>
+    <path d="M40,65 L90,65 M65,40 L65,90" stroke="#e67553" stroke-width="5"/>
+  </g>
+</svg> 
