@@ -10,7 +10,6 @@ import {
   Plus,
   MessageSquare,
   Lock,
-  Settings,
   Heart,
   ChevronRight,
   Shield,
@@ -278,23 +277,6 @@ export function Sidebar({
 }
 
 // Settings Button Component with Dialog
-function SettingsButton() {
-  const [settingsOpen, setSettingsOpen] = useState(false);
-
-  return (
-    <>
-      <Button
-        onClick={() => setSettingsOpen(true)}
-        className="h-9 bg-[#1e3a5f]/15 hover:bg-[#1e3a5f]/30 border border-[#1e3a5f]/30 hover:border-[#89f7fe]/40 rounded-lg transition-all duration-200 group"
-        title="App Settings"
-      >
-        <Settings className="w-4 h-4 text-gray-400 group-hover:text-[#89f7fe] group-hover:rotate-90 transition-all duration-200" />
-      </Button>
-
-      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
-    </>
-  );
-}
 
 // Shared sidebar content component
 interface SidebarContentProps {
@@ -459,16 +441,13 @@ function SidebarContent({
       {/* Footer */}
       <div className="p-4 border-t border-[#1e3a5f]/30 space-y-3">
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-2">
           <Button
             onClick={() => setSecurityInfoOpen(true)}
-            className="h-9 bg-[#1e3a5f]/15 hover:bg-[#1e3a5f]/30 border border-[#1e3a5f]/30 hover:border-[#89f7fe]/40 rounded-lg transition-all duration-200 group"
+            className="h-9 bg-[#1e3a5f]/15 hover:bg-[#1e3a5f]/30 border w-full border-[#1e3a5f]/30 hover:border-[#89f7fe]/40 rounded-lg transition-all duration-200 group"
             title="Security & Privacy"
           >
             <Shield className="w-4 h-4 text-[#89f7fe] group-hover:scale-110 transition-transform duration-200" />
           </Button>
-          <SettingsButton />
-        </div>
 
         {/* User Profile */}
         {user && (
@@ -640,113 +619,7 @@ function SecurityInfoDialog({ open, onOpenChange }: SecurityInfoDialogProps) {
   );
 }
 
-// Settings Dialog Component
-interface SettingsDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
 
-function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
-  const [autoSave, setAutoSave] = useState(true);
-  const [compactMode, setCompactMode] = useState(false);
-
-  return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="bg-gradient-to-b from-[#0f1629] to-[#0a1121] border border-[#1e3a5f]/60 shadow-2xl max-w-md">
-        <AlertDialogHeader>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#22d3ee]/20 to-[#60a5fa]/20 flex items-center justify-center ring-2 ring-[#89f7fe]/10">
-              <Settings className="w-6 h-6 text-[#89f7fe]" />
-            </div>
-            <div>
-              <AlertDialogTitle className="text-white text-lg font-semibold">
-                App Settings
-              </AlertDialogTitle>
-              <p className="text-xs text-[#89f7fe]/80">
-                Customize your Swasth AI experience
-              </p>
-            </div>
-          </div>
-          <AlertDialogDescription className="space-y-4 text-left">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-[#1e3a5f]/15 rounded-lg border border-[#1e3a5f]/30">
-                <div>
-                  <h4 className="text-sm font-medium text-white">
-                    Auto-save Conversations
-                  </h4>
-                  <p className="text-xs text-gray-400">
-                    Automatically save your health chats
-                  </p>
-                </div>
-                <button
-                  onClick={() => setAutoSave(!autoSave)}
-                  className={`w-10 h-6 rounded-full transition-all duration-200 ${
-                    autoSave ? "bg-[#89f7fe]" : "bg-gray-600"
-                  }`}
-                >
-                  <div
-                    className={`w-4 h-4 bg-white rounded-full transition-transform duration-200 ${
-                      autoSave ? "translate-x-5" : "translate-x-1"
-                    }`}
-                  />
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-[#1e3a5f]/15 rounded-lg border border-[#1e3a5f]/30">
-                <div>
-                  <h4 className="text-sm font-medium text-white">
-                    Compact Chat View
-                  </h4>
-                  <p className="text-xs text-gray-400">
-                    Reduce spacing for more messages
-                  </p>
-                </div>
-                <button
-                  onClick={() => setCompactMode(!compactMode)}
-                  className={`w-10 h-6 rounded-full transition-all duration-200 ${
-                    compactMode ? "bg-[#89f7fe]" : "bg-gray-600"
-                  }`}
-                >
-                  <div
-                    className={`w-4 h-4 bg-white rounded-full transition-transform duration-200 ${
-                      compactMode ? "translate-x-5" : "translate-x-1"
-                    }`}
-                  />
-                </button>
-              </div>
-
-              <div className="p-3 bg-[#1e3a5f]/15 rounded-lg border border-[#1e3a5f]/30">
-                <h4 className="text-sm font-medium text-white mb-2">
-                  Data Management
-                </h4>
-                <div className="space-y-2">
-                  <button className="w-full text-left p-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors">
-                    Clear All Conversations
-                  </button>
-                </div>
-              </div>
-
-              <div className="p-3 bg-yellow-500/5 rounded-lg border border-yellow-500/20">
-                <p className="text-xs text-yellow-200/80 leading-relaxed">
-                  <strong>Note:</strong> Settings are saved locally in your
-                  browser. Clearing browser data will reset these preferences.
-                </p>
-              </div>
-            </div>
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogAction
-            onClick={() => onOpenChange(false)}
-            className="w-full bg-gradient-to-r from-[#89f7fe] to-[#66a6ff] hover:from-[#0ea5e9] hover:to-[#3b82f6] text-white shadow-lg hover:shadow-[#89f7fe]/20 transition-all duration-200"
-          >
-            Save Settings
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-}
 
 // Helper function to delete a conversation
 async function deleteConversation(conversationId: string): Promise<void> {

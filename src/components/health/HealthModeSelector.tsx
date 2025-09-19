@@ -20,36 +20,7 @@ import {
 } from "../ui/alert-dialog";
 
 // Welcome messages for each health mode
-const WELCOME_MESSAGES: Record<HealthMode, { en: string; hi: string }> = {
-  symptoms_checker: {
-    en: "Hello! I'm here to help you understand your symptoms. Please describe what you're experiencing - any pain, discomfort, or changes you've noticed. I'll ask follow-up questions to better understand your situation.",
-    hi: "Namaste! Main aapke symptoms samjhane mein help karunga. Batayiye ki aap kya experience kar rahe hain - koi pain, discomfort ya changes jo aapne notice kiye hain. Main aur questions puchunga taaki better samajh saku."
-  },
-  health_tips: {
-    en: "Welcome to Health Tips! I'm here to share practical, evidence-based health advice to help you live better. What area of health would you like tips about - nutrition, exercise, sleep, mental wellness, or something else?",
-    hi: "Health Tips mein aapka swagat hai! Main practical, evidence-based health advice share karunga jo aapki life better banaye. Kis health area ke baare mein tips chahiye - nutrition, exercise, sleep, mental wellness, ya kuch aur?"
-  },
-  myth_fact: {
-    en: "Hi! I'm your Myth vs Fact health detective. I'll help you separate health myths from scientific facts. Share any health claim, remedy, or belief you've heard about, and I'll give you the real truth behind it!",
-    hi: "Hi! Main aapka Myth vs Fact health detective hun. Main health myths aur scientific facts ko alag karne mein help karunga. Koi bhi health claim, remedy, ya belief jo aapne suni hai, batayiye - main aapko real truth bataunga!"
-  },
-  proactive_suggestions: {
-    en: "Hello! I'm here to give you proactive health suggestions to prevent problems before they start. Tell me about your lifestyle, age, or any health concerns, and I'll suggest preventive measures you can take.",
-    hi: "Hello! Main aapko proactive health suggestions dunga jo problems ko shuru hone se pehle hi prevent kar dein. Apni lifestyle, age, ya koi health concerns batayiye, main preventive measures suggest karunga."
-  },
-  emergency: {
-    en: "🚨 EMERGENCY MODE ACTIVATED 🚨\n\nI'm here to help with urgent health situations. If this is a life-threatening emergency, please call emergency services immediately (911/108). For urgent but non-life-threatening issues, describe your situation and I'll guide you on next steps.",
-    hi: "🚨 EMERGENCY MODE ACTIVATED 🚨\n\nMain urgent health situations mein help ke liye hun. Agar ye life-threatening emergency hai, turant emergency services ko call kariye (911/108). Urgent lekin non-life-threatening issues ke liye, apni situation describe kariye, main next steps guide karunga."
-  },
-  personalized: {
-    en: "Welcome to your Personalized Health Assistant! I'll provide advice tailored specifically to your health profile, medical history, and lifestyle. The more you share about yourself, the better I can help you with customized recommendations.",
-    hi: "Aapke Personalized Health Assistant mein aapka swagat hai! Main aapke health profile, medical history, aur lifestyle ke according specially tailored advice dunga. Jitna zyada aap apne baare mein batayenge, utni better customized recommendations de paunga."
-  },
-  general: {
-    en: "Hello! I'm Swasth AI, your general health companion. I can help with health questions, provide wellness tips, explain medical concepts, or just have a health-focused conversation. What would you like to know about today?",
-    hi: "Hello! Main Swasth AI hun, aapka general health companion. Main health questions mein help kar sakta hun, wellness tips de sakta hun, medical concepts explain kar sakta hun, ya sirf health-focused conversation kar sakta hun. Aaj kya jaanna chahte hain?"
-  }
-};
+
 
 export function HealthModeSelector() {
   const { 
@@ -57,7 +28,6 @@ export function HealthModeSelector() {
     setCurrentHealthMode, 
     language, 
     newConversation, 
-    sendMessage 
   } = useChatContext();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
@@ -84,15 +54,7 @@ export function HealthModeSelector() {
       // Navigate to new chat
       navigate('/new');
 
-      // Send welcome message as AI message
-      setTimeout(async () => {
-        const welcomeMessage = WELCOME_MESSAGES[mode];
-        const message = language === 'hi' ? welcomeMessage.hi : welcomeMessage.en;
-
-        // Use sendMessage to properly add the AI welcome message
-        await sendMessage(message, mode);
-      }, 800);
-
+  
     } catch (error) {
       console.error('Error switching health mode:', error);
     } finally {
