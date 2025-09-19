@@ -8,7 +8,6 @@ import {
   Menu,
   PanelLeft,
 } from "lucide-react";
-import { HeartCounter } from "../HeartCounter";
 import { useAuth } from "../../hooks/useAuth";
 import { logoutUser } from "../../lib/auth";
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
@@ -118,9 +117,7 @@ export function Header({
                 <ExternalLink className="h-4 w-4" />
                 <span className="hidden sm:inline font-medium">Portfolio</span>
               </a>
-              <div className="pl-2 border-l border-[#333]/40">
-                <HeartCounter />
-              </div>
+             
             </div>
           )}
 

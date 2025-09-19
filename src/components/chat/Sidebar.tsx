@@ -38,7 +38,6 @@ import {
 import { cn } from "../../lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
-import { HeartCounter } from "../HeartCounter";
 
 interface SidebarProps {
   className?: string;
@@ -537,13 +536,7 @@ export function Sidebar({
                   <ExternalLink className="h-4 w-4 text-[#e67553]" />
                   <span className="text-sm">Portfolio</span>
                 </a>
-                <div className="flex items-center gap-2 p-2 rounded-lg hover:bg-[#222]/70 transition-colors">
-                  <Heart className="h-4 w-4 text-[#e67553]" />
-                  <span className="text-sm">Likes</span>
-                  <div className="ml-auto">
-                    <HeartCounter />
-                  </div>
-                </div>
+               
               </div>
             )}
 
