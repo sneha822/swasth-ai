@@ -77,9 +77,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       const modeToUse = healthMode || currentHealthMode;
 
       let currentConversationId = activeConversationId;
-      if (!currentConversationId) {
+      const isNewConversation = !currentConversationId;
+      if (isNewConversation) {
         currentConversationId = await createConversation(user.uid, content);
         setActiveConversationId(currentConversationId);
+        // Ensure clean slate for the new conversation
         setMessages([]);
       }
 
@@ -88,13 +90,20 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         return await getChatResponse(messages, modeToUse, language, user.uid);
       };
 
-      await handleMessage(content, healthResponseHandler, currentConversationId);
-
-      if (!activeConversationId) {
-        await loadUserConversations();
+      // If this is a brand new conversation (e.g., from /new), start processing
+      // the AI response but return immediately so the UI can navigate and render
+      // the user's message while the assistant "thinks".
+      if (isNewConversation) {
+        // Fire and forget; MessageContext manages isLoading state
+        void handleMessage(content, healthResponseHandler, currentConversationId!);
+        // Optimistically refresh sidebar so the new chat appears immediately
+        void loadUserConversations();
+        return currentConversationId;
+      } else {
+        // Existing conversation flow remains awaited
+        await handleMessage(content, healthResponseHandler, currentConversationId!);
+        return currentConversationId;
       }
-
-      return currentConversationId;
     },
     [
       user,
