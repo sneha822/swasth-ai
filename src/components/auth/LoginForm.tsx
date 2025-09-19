@@ -1,13 +1,15 @@
 import { useState } from "react";
+import { FirebaseError } from "firebase/app";
 import { loginWithEmail, loginWithGoogle } from "../../lib/auth";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 
 interface LoginFormProps {
   onLoginSuccess: () => void;
+  onGoogleCancelled?: () => void;
 }
 
-export function LoginForm({ onLoginSuccess }: LoginFormProps) {
+export function LoginForm({ onLoginSuccess, onGoogleCancelled }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -37,8 +39,16 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
       await loginWithGoogle();
       onLoginSuccess();
     } catch (err) {
-      setError("Error signing in with Google");
-      console.error(err);
+      const error = err as FirebaseError;
+      if (
+        error?.code === "auth/popup-closed-by-user" ||
+        error?.code === "auth/cancelled-popup-request"
+      ) {
+        onGoogleCancelled?.();
+      } else {
+        setError("Error signing in with Google");
+        console.error(err);
+      }
     } finally {
       setIsLoading(false);
     }
